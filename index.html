@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La experiencia de Coralia</title>
+    
+    <!-- Tipografías -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            /* Colores Corporativos Coralia */
+            --warm-gray: #E5E1DB; 
+            --blue-coralia: #002F6C; 
+            --brown-coralia: #3B2313; 
+            --gold-coralia: #CB9754; 
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--warm-gray);
+            font-family: 'Montserrat', sans-serif;
+            color: var(--brown-coralia);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background-color: #ffffff;
+            border-radius: 20px;
+            padding: 30px 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin: 20px 0;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--blue-coralia);
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        p.subtitle {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: var(--brown-coralia);
+            font-style: italic;
+        }
+
+        .welcome-text {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            color: var(--brown-coralia);
+        }
+
+        .alert-text {
+            font-size: 13px;
+            background-color: rgba(203, 151, 84, 0.15);
+            color: var(--brown-coralia);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            border: 1px solid var(--gold-coralia);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--brown-coralia);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--gold-coralia);
+        }
+
+        button, .ig-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--blue-coralia);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+            display: block;
+            box-sizing: border-box;
+            text-decoration: none;
+        }
+
+        button:hover, .ig-btn:hover {
+            background-color: var(--brown-coralia);
+        }
+
+        .ig-btn {
+            background-color: var(--brown-coralia);
+            margin-top: 20px;
+        }
+
+        #ruleta-section, #resultado-section {
+            display: none;
+        }
+
+        canvas {
+            max-width: 100%;
+            margin: 20px 0;
+        }
+
+        .cupon-box {
+            background-color: var(--warm-gray);
+            border: 2px dashed var(--gold-coralia);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--blue-coralia);
+            margin: 15px 0;
+            letter-spacing: 2px;
+        }
+        
+        .captura-alerta {
+            color: #d9534f;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 20px;
+            animation: parpadeo 1.5s infinite;
+        }
+
+        @keyframes parpadeo {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- SECCIÓN 1: FORMULARIO -->
+        <div id="form-section">
+            <h1>Coralia</h1>
+            <p class="subtitle">La experiencia de Coralia</p>
+            
+            <p class="welcome-text">¡Gracias por llegar hasta aquí! Nos emociona muchísimo que nos acompañes en el inicio de nuestro primer local.</p>
+            
+            <div class="alert-text">
+                Llena este breve formulario para girar la ruleta y ganar una sorpresa. <br><br><strong>Importante:</strong> Los premios podrán ser canjeados ÚNICAMENTE en nuestro local físico.
+            </div>
+            
+            <form id="intriga-form">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="nombre" required placeholder="Ej. Ana">
+                </div>
+                <div class="form-group">
+                    <label>Apellido</label>
+                    <input type="text" id="apellido" required placeholder="Ej. Pérez">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono (WhatsApp)</label>
+                    <input type="tel" id="telefono" required placeholder="Ej. 04141234567" pattern="[0-9]{11}" maxlength="11" title="Debe contener exactamente 11 números.">
+                </div>
+                <div class="form-group">
+                    <label>Día y Mes de Cumpleaños</label>
+                    <input type="text" id="cumple" required placeholder="DD/MM (Ej. 15/08)">
+                </div>
+                <button type="submit">Descubrir mi sorpresa</button>
+            </form>
+        </div>
+
+        <!-- SECCIÓN 2: RULETA -->
+        <div id="ruleta-section">
+            <h1>¡Gira la ruleta!</h1>
+            <p>Veamos qué te ha preparado Coralia hoy.</p>
+            <canvas id="canvas-ruleta" width="300" height="300"></canvas>
+            <button id="btn-girar">Girar ahora</button>
+        </div>
+
+        <!-- SECCIÓN 3: RESULTADO -->
+        <div id="resultado-section">
+            <h1>¡Felicidades!</h1>
+            <p>Has ganado:</p>
+            <h2 id="texto-premio" style="color: var(--brown-coralia); font-size: 22px; padding: 0 10px;">Premio</h2>
+            <p style="margin-top: 20px; font-size: 14px;">Muestra este código en la caja de nuestro local al pedir:</p>
+            <div class="cupon-box" id="codigo-cupon">C000</div>
+            
+            <p style="font-size: 12px; color: #666; margin-top: -5px; margin-bottom: 20px;">*Los premios de cortesía aplican con la compra de cualquier producto en el local.</p>
+            
+            <p class="captura-alerta">📸 ¡TÓMALE UNA CAPTURA DE PANTALLA PARA NO PERDER TU PREMIO!</p>
+            
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;">
+            
+            <p style="font-size: 14px; font-weight: 600;">¿Quieres saber cuándo abrimos?</p>
+            <p style="font-size: 13px;">Síguenos en Instagram para enterarte de nuestra fecha oficial de apertura.</p>
+            
+            <a href="https://instagram.com/dulcecoralia" target="_blank" class="ig-btn">Seguir a Coralia en Instagram</a>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN DE SUPABASE
+        // ==========================================
+        const SUPABASE_URL = 'https://ocfiymrkgvrciwfnovdn.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jZml5bXJrZ3ZyY2l3Zm5vdmRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxOTgzMDYsImV4cCI6MjEwNzc3NDMwNn0.28uQI7Hmn7GaKuMWw4Bq3BkjznQ6cQG9zWwBKUM_00A'; 
+        
+        const clienteSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let datosCliente = {};
+        
+        // El orden de los premios
+        let premios = [
+            "1 Muffin de Cortesía", 
+            "Chispas de Alegría", 
+            "10% de Descuento", 
+            "Café gratis", 
+            "15% de Descuento"
+        ];
+        
+        // Las probabilidades en porcentaje para cada premio (debe sumar 100)
+        let probabilidades = [40, 25, 20, 10, 5];
+        
+        let coloresRuleta = ["#002F6C", "#3B2313", "#CB9754", "#002F6C", "#3B2313"];
+
+        const formSection = document.getElementById('form-section');
+        const ruletaSection = document.getElementById('ruleta-section');
+        const resultadoSection = document.getElementById('resultado-section');
+        const form = document.getElementById('intriga-form');
+        const btnGirar = document.getElementById('btn-girar');
+        const canvas = document.getElementById('canvas-ruleta');
+        const ctx = canvas.getContext('2d');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Validación estricta del teléfono
+            const telefonoInput = document.getElementById('telefono').value;
+            const telefonoLimpio = telefonoInput.replace(/[\s-]/g, ''); 
+            
+            if (!/^\d{11}$/.test(telefonoLimpio)) {
+                alert("Por favor, ingresa un número de teléfono válido de 11 dígitos. Ej: 04141234567");
+                return; 
+            }
+
+            datosCliente = {
+                nombre: document.getElementById('nombre').value.trim(),
+                apellido: document.getElementById('apellido').value.trim(),
+                telefono: telefonoLimpio,
+                cumpleanos: document.getElementById('cumple').value.trim()
+            };
+            
+            formSection.style.display = 'none';
+            ruletaSection.style.display = 'block';
+            setTimeout(dibujarRuleta, 100);
+        });
+
+        let anguloActual = 0;
+        let girando = false;
+
+        function dibujarRuleta() {
+            const radio = canvas.width / 2;
+            const arco = 2 * Math.PI / premios.length;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < premios.length; i++) {
+                const angulo = anguloActual + i * arco;
+                ctx.beginPath();
+                ctx.fillStyle = coloresRuleta[i];
+                ctx.moveTo(radio, radio);
+                ctx.arc(radio, radio, radio, angulo, angulo + arco);
+                ctx.fill();
+
+                ctx.save();
+                ctx.translate(radio, radio);
+                ctx.rotate(angulo + arco / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "14px Montserrat";
+                ctx.fillText(premios[i].substring(0, 18), radio - 10, 5);
+                ctx.restore();
+            }
+            
+            ctx.fillStyle = "#E5E1DB";
+            ctx.beginPath();
+            ctx.moveTo(radio - 10, 0);
+            ctx.lineTo(radio + 10, 0);
+            ctx.lineTo(radio, 20);
+            ctx.fill();
+        }
+
+        btnGirar.addEventListener('click', function() {
+            if (girando) return;
+            girando = true;
+            btnGirar.disabled = true;
+            btnGirar.innerText = "Girando...";
+
+            let giros = 0;
+            const maxGiros = 50 + Math.floor(Math.random() * 50); 
+            
+            const intervalo = setInterval(async () => {
+                anguloActual += 0.2;
+                dibujarRuleta();
+                giros++;
+
+                if (giros >= maxGiros) {
+                    clearInterval(intervalo);
+                    
+                    // === NUEVA LÓGICA DE PROBABILIDADES ===
+                    let rand = Math.random() * 100;
+                    let acumulado = 0;
+                    let indexPremio = 0;
+                    
+                    for (let i = 0; i < probabilidades.length; i++) {
+                        acumulado += probabilidades[i];
+                        if (rand < acumulado) {
+                            indexPremio = i;
+                            break;
+                        }
+                    }
+                    // =======================================
+
+                    // Añade "por tu compra" solo a los premios que no son descuentos (los que no tienen el símbolo %)
+                    const premioGanado = premios[indexPremio] + (premios[indexPremio].includes("%") ? "" : " por tu compra");
+                    
+                    const codigoCupon = "C-" + Math.floor(1000 + Math.random() * 9000);
+
+                    try {
+                        const { data, error } = await clienteSupabase
+                            .from('clientes_intriga')
+                            .insert([
+                                { 
+                                    nombre: datosCliente.nombre, 
+                                    apellido: datosCliente.apellido, 
+                                    telefono: datosCliente.telefono,
+                                    cumpleanos: datosCliente.cumpleanos,
+                                    premio_ganado: premioGanado,
+                                    codigo_cupon: codigoCupon,
+                                    estado_cupon: 'activo'
+                                }
+                            ]);
+
+                        if (error) throw error;
+
+                        document.getElementById('texto-premio').innerText = premioGanado;
+                        document.getElementById('codigo-cupon').innerText = codigoCupon;
+                        
+                        ruletaSection.style.display = 'none';
+                        resultadoSection.style.display = 'block';
+
+                    } catch (error) {
+                        alert("Hubo un error guardando tu premio. Por favor intenta de nuevo.");
+                        console.error(error);
+                        btnGirar.disabled = false;
+                        btnGirar.innerText = "Intentar de nuevo";
+                        girando = false;
+                    }
+                }
+            }, 30);
+        });
+    </script>
+</body>
+</html>
