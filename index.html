@@ -127,12 +127,17 @@
             background-color: var(--brown-coralia);
         }
 
+        button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+
         .ig-btn {
             background-color: var(--brown-coralia);
             margin-top: 20px;
         }
 
-        #ruleta-section, #resultado-section {
+        #ruleta-section, #resultado-section, #agotado-section {
             display: none;
         }
 
@@ -171,6 +176,17 @@
 <body>
 
     <div class="container">
+        <!-- SECCIÓN DE AGOTADO (Oculta por defecto) -->
+        <div id="agotado-section">
+            <h1>Coralia</h1>
+            <p class="subtitle">La experiencia de Coralia</p>
+            <div class="alert-text" style="background-color: #f8d7da; border-color: #f5c6cb; color: #721c24;">
+                <b style="font-size: 16px;">¡La promoción ha finalizado!</b><br><br>
+                Ya hemos entregado nuestras 100 sorpresas iniciales. Muchísimas gracias por tu increíble apoyo.<br><br>¡Síguenos en Instagram para enterarte de nuestra gran apertura en Guatire!
+            </div>
+            <a href="https://instagram.com/dulcecoralia" target="_blank" class="ig-btn">Seguir a Coralia en Instagram</a>
+        </div>
+
         <!-- SECCIÓN 1: FORMULARIO -->
         <div id="form-section">
             <h1>Coralia</h1>
@@ -179,7 +195,7 @@
             <p class="welcome-text">¡Gracias por llegar hasta aquí! Nos emociona muchísimo que nos acompañes en el inicio de nuestro primer local.</p>
             
             <div class="alert-text">
-                Llena este breve formulario para girar la ruleta y ganar una sorpresa. <br><br><strong>Importante:</strong> Los premios podrán ser canjeados ÚNICAMENTE en nuestro local físico.
+                Llena este breve formulario para girar la ruleta y ganar una sorpresa. <br><br><strong>Importante:</strong> Los premios podrán ser canjeados ÚNICAMENTE en nuestro local físico. Limitado a 100 premios.
             </div>
             
             <form id="intriga-form">
@@ -199,7 +215,7 @@
                     <label>Día y Mes de Cumpleaños</label>
                     <input type="text" id="cumple" required placeholder="DD/MM (Ej. 15/08)">
                 </div>
-                <button type="submit">Descubrir mi sorpresa</button>
+                <button type="submit" id="btn-submit">Descubrir mi sorpresa</button>
             </form>
         </div>
 
@@ -243,7 +259,7 @@
 
         let datosCliente = {};
         
-        // El orden de los premios
+        // El orden de los premios y sus probabilidades
         let premios = [
             "1 Muffin de Cortesía", 
             "Chispas de Alegría", 
@@ -251,21 +267,45 @@
             "Café gratis", 
             "15% de Descuento"
         ];
-        
-        // Las probabilidades en porcentaje para cada premio (debe sumar 100)
         let probabilidades = [40, 25, 20, 10, 5];
-        
         let coloresRuleta = ["#002F6C", "#3B2313", "#CB9754", "#002F6C", "#3B2313"];
 
         const formSection = document.getElementById('form-section');
         const ruletaSection = document.getElementById('ruleta-section');
         const resultadoSection = document.getElementById('resultado-section');
+        const agotadoSection = document.getElementById('agotado-section');
         const form = document.getElementById('intriga-form');
+        const btnSubmit = document.getElementById('btn-submit');
         const btnGirar = document.getElementById('btn-girar');
         const canvas = document.getElementById('canvas-ruleta');
         const ctx = canvas.getContext('2d');
 
-        form.addEventListener('submit', function(e) {
+        // ==========================================
+        // VERIFICAR LÍMITE DE 100 AL ABRIR LA PÁGINA
+        // ==========================================
+        async function verificarLimite() {
+            try {
+                // Cuenta cuántos registros hay sin descargar toda la data
+                const { count, error } = await clienteSupabase
+                    .from('clientes_intriga')
+                    .select('*', { count: 'exact', head: true });
+
+                if (count >= 100) {
+                    formSection.style.display = 'none';
+                    agotadoSection.style.display = 'block';
+                }
+            } catch (err) {
+                console.error("Error comprobando el límite de premios:", err);
+            }
+        }
+        
+        // Ejecutamos la verificación apenas carga la página
+        verificarLimite();
+
+        // ==========================================
+        // VERIFICAR NÚMERO DUPLICADO AL ENVIAR
+        // ==========================================
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             // Validación estricta del teléfono
@@ -277,18 +317,51 @@
                 return; 
             }
 
-            datosCliente = {
-                nombre: document.getElementById('nombre').value.trim(),
-                apellido: document.getElementById('apellido').value.trim(),
-                telefono: telefonoLimpio,
-                cumpleanos: document.getElementById('cumple').value.trim()
-            };
-            
-            formSection.style.display = 'none';
-            ruletaSection.style.display = 'block';
-            setTimeout(dibujarRuleta, 100);
+            // Cambiamos el botón mientras verificamos la base de datos
+            const textoOriginal = btnSubmit.innerText;
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = "Verificando...";
+
+            try {
+                // Buscamos si el teléfono ya existe en Supabase
+                const { data, error } = await clienteSupabase
+                    .from('clientes_intriga')
+                    .select('telefono')
+                    .eq('telefono', telefonoLimpio);
+
+                if (error) throw error;
+
+                // Si 'data' trae información, significa que el número ya está registrado
+                if (data && data.length > 0) {
+                    alert("⚠️ Este número de WhatsApp ya participó en la dinámica. ¡Solo se permite un premio por persona!");
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerText = textoOriginal;
+                    return; // Detenemos el proceso aquí
+                }
+
+                // Si todo está bien, guardamos los datos temporalmente y mostramos la ruleta
+                datosCliente = {
+                    nombre: document.getElementById('nombre').value.trim(),
+                    apellido: document.getElementById('apellido').value.trim(),
+                    telefono: telefonoLimpio,
+                    cumpleanos: document.getElementById('cumple').value.trim()
+                };
+                
+                formSection.style.display = 'none';
+                ruletaSection.style.display = 'block';
+                setTimeout(dibujarRuleta, 100);
+
+            } catch (err) {
+                alert("Hubo un problema de conexión verificando tus datos. Por favor intenta de nuevo.");
+                console.error(err);
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = textoOriginal;
+            }
         });
 
+        // ==========================================
+        // DIBUJAR Y GIRAR LA RULETA
+        // ==========================================
         let anguloActual = 0;
         let girando = false;
 
@@ -341,7 +414,7 @@
                 if (giros >= maxGiros) {
                     clearInterval(intervalo);
                     
-                    // === NUEVA LÓGICA DE PROBABILIDADES ===
+                    // Lógica de probabilidades trucadas
                     let rand = Math.random() * 100;
                     let acumulado = 0;
                     let indexPremio = 0;
@@ -353,14 +426,12 @@
                             break;
                         }
                     }
-                    // =======================================
 
-                    // Añade "por tu compra" solo a los premios que no son descuentos (los que no tienen el símbolo %)
                     const premioGanado = premios[indexPremio] + (premios[indexPremio].includes("%") ? "" : " por tu compra");
-                    
                     const codigoCupon = "C-" + Math.floor(1000 + Math.random() * 9000);
 
                     try {
+                        // Inserción final en la base de datos
                         const { data, error } = await clienteSupabase
                             .from('clientes_intriga')
                             .insert([
